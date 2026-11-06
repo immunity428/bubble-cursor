@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bubble Cursor 実験データの比較</title>
+  <link rel="stylesheet" href="compare.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <h1>実験データの比較</h1>
+      <div class="top-actions">
+        <label class="btn primary">JSONを読み込む<input type="file" id="file-input" accept=".json,application/json" multiple hidden></label>
+        <button type="button" class="btn" id="load-backup">ブラウザ内の記録</button>
+        <button type="button" class="btn" id="clear-all" disabled>すべて外す</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- 読み込み前 -->
+    <section id="empty" class="dropzone">
+      <p class="dz-title">実験アプリで保存した JSON をここにドロップ</p>
+      <p class="dz-sub">複数まとめて読み込めます。ファイルはブラウザの中だけで処理され、どこにも送信されません。</p>
+    </section>
+
+    <div id="content" hidden>
+      <!-- 1. データ一覧 -->
+      <section class="card">
+        <div class="card-head">
+          <h2>読み込んだデータ</h2>
+          <div class="params">
+            <label>停止とみなす間隔 <input type="number" id="p-pause" min="20" max="1000" step="10"> ms</label>
+            <label>最大速度の窓 <input type="number" id="p-window" min="5" max="500" step="5"> ms</label>
+          </div>
+        </div>
+        <div id="warnings"></div>
+        <div class="table-wrap"><table id="session-table"></table></div>
+        <p class="note">チェックを外したデータは、以下のすべての集計から除かれます。</p>
+      </section>
+
+      <!-- 2. 条件の比較 -->
+      <section class="card">
+        <div class="card-head">
+          <h2>比較</h2>
+          <div class="controls">
+            <label>課題
+              <select id="c-task">
+                <option value="survey">アンケート（区間）</option>
+                <option value="aim">エイム（区間）</option>
+                <option value="aim_round">エイム（成績）</option>
+              </select>
+            </label>
+            <label>比べるもの
+              <select id="c-axis">
+                <option value="condition">バブル なし / あり</option>
+                <option value="order">1回目 / 2回目（順序効果の確認）</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <p class="note">各参加者の代表値（区間の指標は中央値、回数は合計）を求め、参加者ごとに対にして Wilcoxon 符号順位検定（両側）を行います。行をクリックすると図が切り替わります。</p>
+        <div class="compare-grid">
+          <div>
+            <h3 id="paired-title"></h3>
+            <div id="paired-chart" class="chart"></div>
+            <p class="legend-line"><span class="ln"></span>同じ参加者　<span class="md"></span>中央値</p>
+          </div>
+          <div class="table-wrap"><table id="compare-table" class="clickable"></table></div>
+        </div>
+        <div class="row-actions">
+          <button type="button" class="btn" id="dl-compare">この比較表 (CSV)</button>
+          <button type="button" class="btn" id="dl-participant">参加者ごとの値 (CSV)</button>
+          <button type="button" class="btn" id="dl-segments">全区間 (CSV)</button>
+          <button type="button" class="btn" id="dl-rounds">エイム成績 (CSV)</button>
+        </div>
+      </section>
+
+      <!-- 3. 参加者ごとの値 -->
+      <section class="card">
+        <div class="card-head"><h2>参加者ごとの値</h2><span class="sub" id="participant-sub"></span></div>
+        <div class="table-wrap"><table id="participant-table"></table></div>
+      </section>
+
+      <!-- 4. エイム課題の Fitts の法則 -->
+      <section class="card" id="fitts-card">
+        <div class="card-head"><h2>エイム課題：難易度と移動時間（Fitts の法則）</h2></div>
+        <p class="note">横軸は Fitts の難易度 ID = log2(D/W+1)、縦軸は前の命中から次の命中までの時間。直線は MT = a + b·ID の当てはめ。</p>
+        <div class="compare-grid">
+          <div id="fitts-chart" class="chart"></div>
+          <div class="table-wrap"><table id="fitts-table"></table></div>
+        </div>
+      </section>
+
+      <!-- 5. 軌跡を並べて見る -->
+      <section class="card">
+        <div class="card-head"><h2>軌跡を並べて見る</h2>
+          <label class="check"><input type="checkbox" id="t-sync" checked> 右も同じ参加者・同じページにそろえる</label>
+        </div>
+        <p class="legend-line">
+          <span class="ln traj"></span>カーソルの軌跡　<span class="dot"></span>回答点・命中（番号 = 区間）
+          <span class="sq"></span>点にならなかったクリック　<span class="tg"></span>ターゲット
+        </p>
+        <div class="traj-grid">
+          <div class="traj" data-side="a">
+            <div class="traj-controls">
+              <select class="t-session"></select><select class="t-block"></select><select class="t-page"></select>
+            </div>
+            <canvas></canvas>
+            <p class="traj-stats"></p>
+          </div>
+          <div class="traj" data-side="b">
+            <div class="traj-controls">
+              <select class="t-session"></select><select class="t-block"></select><select class="t-page"></select>
+            </div>
+            <canvas></canvas>
+            <p class="traj-stats"></p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="drop-overlay" hidden><p>ここにドロップ</p></div>
+
+  <!-- 区間の計算は実験アプリと同じファイルを使う -->
+  <script src="../experiment/js/analysis.js"></script>
+  <script src="stats.js"></script>
+  <script src="compare.js"></script>
+</body>
+</html>

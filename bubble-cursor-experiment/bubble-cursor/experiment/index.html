@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bubble Cursor アンケート実験</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 1. 実験者が設定する画面 -->
+  <section class="screen" data-screen="setup">
+    <div class="panel">
+      <h1>Bubble Cursor アンケート実験</h1>
+      <p class="lead">「バブルカーソルなし」「あり」の2条件で、同じアンケートとエイム課題を行ってもらい、クリックした点のあいだのカーソル移動を記録します。</p>
+      <form id="setup-form">
+        <label class="field">
+          <span>参加者ID</span>
+          <input name="pid" required autocomplete="off" placeholder="例: P01">
+        </label>
+        <label class="field">
+          <span>条件の順番</span>
+          <select name="order">
+            <option value="auto">自動（IDの番号が奇数→なしが先、偶数→ありが先）</option>
+            <option value="off,on">なし → あり</option>
+            <option value="on,off">あり → なし</option>
+          </select>
+          <small id="order-preview"></small>
+        </label>
+        <label class="field">
+          <span>バブルの最大半径 (px)</span>
+          <input name="maxRadius" type="number" min="0" max="2000" step="10" value="0">
+          <small>0 = 上限なし（論文と同じ）。拡張機能版の初期値は 200</small>
+        </label>
+        <label class="check"><input type="checkbox" name="showBubble" checked> バブルを表示する</label>
+        <label class="check"><input type="checkbox" name="practice" checked> 各ブロックの前に練習ページを入れる</label>
+        <label class="check"><input type="checkbox" name="fullscreen" checked> 全画面で実施する</label>
+        <label class="check dev"><input type="checkbox" name="dev" id="dev-check"> 開発者モード（各ターゲットをどこからクリックできるかを表示）</label>
+        <p class="hint">実験中も Alt+Shift+D（Mac は Option+Shift+D）で切り替えられます。使った記録には印が付きます。</p>
+        <fieldset class="group">
+          <legend>エイム課題（アンケートのあとに各条件で実施）</legend>
+          <div class="grid2">
+            <label class="field">
+              <span>制限時間 (秒)</span>
+              <input name="aimSeconds" type="number" min="0" max="600" step="1" value="15">
+              <small>0 = 実施しない</small>
+            </label>
+            <label class="field">
+              <span>ターゲットの数</span>
+              <input name="aimTargets" type="number" min="2" max="60" step="1" value="10">
+            </label>
+            <label class="field">
+              <span>ターゲットの直径 (px)</span>
+              <input name="aimSize" type="number" min="4" max="200" step="1" value="24">
+            </label>
+            <label class="field">
+              <span>乱数の種</span>
+              <input name="aimSeed" type="number" step="1" value="1">
+              <small>同じ値なら配置と目標の順番が同じになる</small>
+            </label>
+          </div>
+        </fieldset>
+        <label class="field">
+          <span>メモ（任意）</span>
+          <input name="notes" autocomplete="off" placeholder="使用したマウス、ポインタ速度の設定など">
+        </label>
+        <button type="submit" class="primary">実験を始める</button>
+      </form>
+      <div id="backups"></div>
+    </div>
+  </section>
+
+  <!-- 2. ブロックの説明（開始ボタンの位置は両条件で同じ） -->
+  <section class="screen" data-screen="intro" hidden>
+    <div class="intro">
+      <p class="block-label" id="intro-block"></p>
+      <h2 id="intro-title"></h2>
+      <p id="intro-text"></p>
+    </div>
+    <button type="button" class="primary start" id="intro-start" data-tid="start" data-kind="start">開始</button>
+  </section>
+
+  <!-- 3. アンケート本体（バブルカーソルはこの中のボタンだけを対象にする） -->
+  <section class="screen" data-screen="survey" hidden>
+    <header class="survey-head">
+      <span id="survey-title"></span>
+      <span id="survey-progress"></span>
+    </header>
+    <div id="survey"></div>
+  </section>
+
+  <!-- 4. ブロック間の休憩 -->
+  <section class="screen" data-screen="break" hidden>
+    <div class="intro">
+      <h2>1回目はここまでです</h2>
+      <p>少し休んでから、2回目に進んでください。<br>2回目も同じアンケートに答えてもらいます。</p>
+    </div>
+    <button type="button" class="primary start" id="break-next">2回目に進む</button>
+  </section>
+
+  <!-- 5. 結果（実験者向け） -->
+  <section class="screen" data-screen="finish" hidden>
+    <div class="panel wide">
+      <h1>記録が終わりました</h1>
+      <p class="lead" id="finish-lead"></p>
+      <div class="downloads">
+        <button type="button" class="primary" id="dl-json">生データ (JSON)</button>
+        <button type="button" id="dl-seg">区間データ (CSV)</button>
+        <button type="button" id="dl-sum">条件別まとめ (CSV)</button>
+        <button type="button" id="dl-aim">エイム成績 (CSV)</button>
+        <button type="button" id="restart">次の参加者へ</button>
+      </div>
+
+      <h2>課題・条件別まとめ（練習・「開始」ボタンへの移動・エイムの1回目・スクロールを含む区間は除く）</h2>
+      <div class="table-wrap"><table id="summary-table"></table></div>
+
+      <h2>軌跡と回答点</h2>
+      <div class="viewer-controls">
+        <label>ブロック <select id="v-block"></select></label>
+        <label>ページ <select id="v-page"></select></label>
+      </div>
+      <p class="legend">
+        <span class="sw line"></span>カーソルの軌跡
+        <span class="sw pt"></span>回答点（番号 = 区間）
+        <span class="sw miss"></span>回答点にならなかったクリック（空振り・エイムの誤選択）
+        <span class="sw rect"></span>ターゲット
+      </p>
+      <canvas id="v-canvas"></canvas>
+      <div class="table-wrap"><table id="v-table"></table></div>
+    </div>
+  </section>
+
+  <script src="js/questions.js"></script>
+  <script src="js/bubble-cursor.js"></script>
+  <script src="js/bubble-geometry.js"></script>
+  <script src="js/dev-mode.js"></script>
+  <script src="js/cursor-logger.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
