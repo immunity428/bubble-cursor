@@ -1,0 +1,150 @@
+/* 計測に影響しないよう、両条件で見た目は同じ。アニメーションやホバーでの大きさの変化は入れない */
+:root {
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --ink: #1d2330;
+  --muted: #5b6475;
+  --line: #d6dae2;
+  --accent: #2b59c3;
+  --accent-soft: #e5ecfa;
+  --radius: 8px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); }
+[hidden] { display: none !important; }
+button, select, input { font: inherit; color: inherit; }
+.screen { min-height: 100vh; }
+
+/* ---------- 設定・結果 ---------- */
+.panel { max-width: 580px; margin: 0 auto; padding: 40px 16px 64px; }
+.panel.wide { max-width: 1100px; }
+h1 { font-size: 24px; margin: 0 0 8px; }
+h2 { font-size: 18px; margin: 32px 0 12px; }
+.lead { color: var(--muted); line-height: 1.7; margin: 0 0 24px; }
+.field { display: grid; gap: 6px; margin-bottom: 16px; }
+.field > span { font-weight: 600; font-size: 14px; }
+.field small { color: var(--muted); font-size: 12px; }
+.field input, .field select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.check { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 14px; }
+.check.dev { margin-top: 6px; }
+.hint { color: var(--muted); font-size: 12px; margin: -4px 0 12px 24px; line-height: 1.6; }
+.dev-opts { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 0 0 6px 24px; font-size: 13px; }
+.dev-opts > span { color: var(--muted); font-size: 12px; }
+.dev-opts .check { margin: 0; font-size: 13px; }
+.group { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px 0; margin: 16px 0; }
+.group legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; align-items: start; }
+.warn { background: #fff7e6; border: 1px solid #f0d49a; color: #6b4a00; border-radius: 6px; padding: 8px 12px; font-size: 13px; margin-bottom: 16px; line-height: 1.6; }
+.warn ul { margin: 4px 0 0; padding-left: 18px; }
+
+.primary { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 10px 20px; font-weight: 600; cursor: pointer; }
+.panel button:not(.primary) { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 16px; cursor: pointer; }
+#setup-form .primary { margin-top: 12px; width: 100%; }
+.backups { margin-top: 32px; font-size: 13px; color: var(--muted); }
+.backups ul { padding-left: 18px; }
+.panel .backups button { padding: 4px 10px; margin-left: 8px; font-size: 12px; }
+
+.downloads { display: flex; flex-wrap: wrap; gap: 8px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: right; white-space: nowrap; }
+th:first-child, td:first-child, td.l { text-align: left; }
+th { background: #eef0f4; font-weight: 600; }
+th.l { text-align: left; }
+td.wrap, th.wrap { white-space: normal; min-width: 160px; max-width: 420px; line-height: 1.5; }
+
+.viewer-controls { display: flex; gap: 16px; margin-bottom: 8px; font-size: 14px; flex-wrap: wrap; }
+.viewer-controls select { padding: 4px 6px; }
+.legend { font-size: 12px; color: var(--muted); display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; }
+.sw { display: inline-block; width: 14px; height: 10px; margin-right: 4px; vertical-align: middle; }
+.sw.line { border-top: 2px solid #8a93a6; height: 0; }
+.sw.pt { width: 10px; border-radius: 50%; background: #d1453b; }
+.sw.miss { width: 10px; border: 2px solid #e09a1a; border-radius: 2px; }
+.sw.rect { border: 1px solid #9fb2dd; background: #eef3fc; }
+.viewer-canvas { width: 100%; height: auto; border: 1px solid var(--line); background: #fff; margin: 8px 0 12px; display: block; }
+
+/* ---------- 説明・休憩画面 ---------- */
+.intro { position: absolute; left: 50%; top: 22vh; transform: translateX(-50%); width: min(680px, calc(100% - 32px)); text-align: center; }
+.block-label { color: var(--muted); margin: 0 0 8px; }
+.intro h2 { font-size: 28px; margin: 0 0 16px; }
+.intro p { line-height: 1.8; }
+/* 開始ボタンは両条件で同じ位置に置く（最初の区間の出発点をそろえるため） */
+.start { position: absolute; left: 50%; top: 68vh; transform: translateX(-50%); min-width: 180px; padding: 14px 28px; font-size: 18px; }
+
+/* ---------- アンケート ----------
+   ★ セット A と B でターゲットの位置と大きさが同じになるよう、文字の長さで大きさが変わらないようにしている */
+.survey-head { display: flex; justify-content: space-between; max-width: 1040px; margin: 0 auto; padding: 18px 24px 0; color: var(--muted); font-size: 14px; }
+.survey-head.wide { max-width: none; padding: 20px 28px 0; }
+.survey { max-width: 1040px; margin: 0 auto; padding: 10px 24px 20px; }
+.questions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 900px) { .questions { grid-template-columns: 1fr; } }
+.q { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; min-width: 0; }
+.q.full { grid-column: 1 / -1; }
+/* 質問文は2行分の高さに固定（1行でも2行でも下の選択肢の位置が変わらない） */
+.q-text {
+  margin: 0 0 10px; font-weight: 600; line-height: 1.5; height: 3em; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.q-num { color: var(--muted); margin-right: 8px; font-weight: 500; }
+
+.opt {
+  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px;
+  background: none; border: 0; border-radius: 4px; cursor: pointer;
+  font-size: 15px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden;
+}
+.opt:focus { outline: none; }
+.opt .mark { width: 16px; height: 16px; flex: 0 0 16px; border-radius: 50%; border: 2px solid #7d879a; background: #fff; }
+.opt.is-check .mark { border-radius: 3px; }
+.opt[aria-checked="true"] .mark { border-color: var(--accent); background: radial-gradient(var(--accent) 0 4px, #fff 5px); }
+.opt.is-check[aria-checked="true"] .mark { background: var(--accent); box-shadow: inset 0 0 0 3px #fff; }
+.opt .lbl { overflow: hidden; text-overflow: ellipsis; }
+
+.opts.scale { display: grid; justify-items: center; }
+.opts.scale.n5 { grid-template-columns: repeat(5, 1fr); }
+.opts.scale.n5 .opt { width: 150px; }
+.opts.scale.n7 { grid-template-columns: repeat(7, 1fr); }
+.opts.scale.n7 .opt { width: 46px; justify-content: center; gap: 4px; padding: 0 4px; }
+.anchors { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; padding: 0 4px; }
+.opts.choice { display: flex; flex-direction: column; gap: 6px; }
+.opts.choice .opt { width: 280px; }
+.opts.grid, .opts.multi { display: grid; grid-template-columns: repeat(2, 210px); gap: 6px 12px; }
+.opts.grid .opt, .opts.multi .opt { width: 210px; }
+
+.matrix { table-layout: fixed; border-collapse: collapse; }
+.matrix th, .matrix td { border: 0; background: none; padding: 0; }
+.matrix thead th { width: 96px; height: 36px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: center; white-space: normal; line-height: 1.3; vertical-align: bottom; padding-bottom: 4px; }
+.matrix th.row-h { width: 240px; text-align: left; font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
+.matrix tbody tr { height: 38px; }
+.matrix tbody tr:nth-child(odd) { background: #f7f8fa; }
+.matrix td { text-align: center; }
+.opt.cell { width: 32px; height: 32px; padding: 0; justify-content: center; }
+.opt.cell .lbl { display: none; }
+
+.next-row { display: flex; justify-content: center; margin-top: 18px; }
+.next { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 10px 32px; font-weight: 600; cursor: pointer; }
+.next:disabled { background: #b8c0cf; cursor: default; }
+
+/* ---------- エイム課題 ---------- */
+.aim-arena { position: fixed; left: 24px; right: 24px; top: 56px; bottom: 24px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.aim-target { position: absolute; padding: 0; border-radius: 50%; cursor: pointer; background: #fff; border: 2px solid #8a93a6; }
+.aim-target.goal { background: #e0592a; border-color: #b8431b; }
+.aim-target:focus { outline: none; }
+
+/* ---------- 開発者モード ---------- */
+.dev-hud {
+  position: fixed; left: 12px; bottom: 12px; z-index: 2147483647; pointer-events: none;
+  width: 250px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(22, 27, 38, .86); color: #e9edf5; font: 12px/1.5 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; box-shadow: 0 4px 16px rgba(0,0,0,.18);
+}
+.dev-hud .dev-title { margin: 0 0 6px; font-weight: 700; color: #ffcf6e; letter-spacing: .02em; }
+.dev-hud dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 0; }
+.dev-hud dt { color: #9aa6bd; }
+.dev-hud dd { margin: 0; word-break: break-all; }
+.dev-hud .dev-keys { margin: 8px 0 0; color: #9aa6bd; font-size: 11px; }
+.dev-hud .dev-keys span { margin-right: 4px; }
+.dev-hud .dev-keys .on { color: #ffcf6e; }
